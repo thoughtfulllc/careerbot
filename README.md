@@ -2,6 +2,8 @@
 
 An AI career assistant. It researches companies, finds matching open roles, drafts job applications, tracks their status through the full pipeline, and reuses your best answers across applications, so you stop re-writing the same "Why us?" essay every week.
 
+![Careerbot dashboard](./docs/dashboard.png)
+
 Careerbot stores **everything as local markdown files** under `applications/`, `companies/`, and `answer-bank/`. The schema is defined in [`SCHEMA.md`](./SCHEMA.md) and is designed to be loadable as-is into SQLite (one file = one row, typed YAML frontmatter, folder-encoded status, slug-based foreign keys).
 
 
