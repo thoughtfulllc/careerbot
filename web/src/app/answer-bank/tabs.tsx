@@ -4,8 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { GlassCard } from "@/components/glass-card";
+import { TabBar } from "@/components/tab-bar";
 import {
   ANSWER_THEMES,
   type AnswerBankEntry,
@@ -13,15 +14,11 @@ import {
 } from "@/lib/types";
 import { formatDate, humanizeSlug } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { useTabIndicator } from "@/lib/use-tab-indicator";
 import { useUnsavedChanges } from "@/components/unsaved-changes";
 import {
   parseAnsweredFilter,
   type AnsweredFilter,
 } from "./answer-state-filter";
-
-const SELECTED_ROW_CLASS =
-  "bg-white/90 ring-1 ring-zinc-900/5 dark:bg-white/[0.08] dark:ring-white/10";
 
 type TabValue = "all" | AnswerTheme;
 type TabSpec = { value: TabValue; label: string };
@@ -49,7 +46,6 @@ export function AnswerBankTabs({ entries }: { entries: AnswerBankEntry[] }) {
   const selectedId = searchParams.get("selected");
   const answered = parseAnsweredFilter(searchParams.get("answered"));
   const [active, setActive] = React.useState<TabValue>("all");
-  const { listRef, setTriggerRef, indicator, firstPaint } = useTabIndicator(active);
 
   // When the panel is open, swapping tabs (or changing the answered filter)
   // should auto-select the first row of the new view. If the currently-selected
@@ -97,48 +93,7 @@ export function AnswerBankTabs({ entries }: { entries: AnswerBankEntry[] }) {
       }}
       className="flex h-full flex-col gap-0"
     >
-      <div className="shrink-0 border-b border-zinc-200/70 dark:border-white/10">
-        <TabsList
-          ref={listRef}
-          className="relative flex w-full flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0 group-data-horizontal/tabs:h-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {indicator ? (
-            <div
-              aria-hidden
-              className={cn(
-                "pointer-events-none absolute -bottom-px left-0 z-10 h-[2.5px] rounded-full bg-zinc-900 dark:bg-white",
-                firstPaint ? "" : "transition-all duration-300 ease-out",
-              )}
-              style={{ transform: `translateX(${indicator.left}px)`, width: indicator.width }}
-            />
-          ) : null}
-
-          {TABS.map((tab) => {
-            const count = counts.get(tab.value) ?? 0;
-            const isActive = active === tab.value;
-            return (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                ref={setTriggerRef(tab.value)}
-                className={cn(
-                  "relative z-10 h-10 shrink-0 bg-transparent px-4 text-sm transition-colors",
-                  "before:absolute before:inset-x-0 before:top-1 before:bottom-1.5 before:rounded-md before:transition-colors before:content-['']",
-                  "data-active:bg-transparent data-active:border-transparent data-active:shadow-none dark:data-active:bg-transparent dark:data-active:border-transparent",
-                  isActive
-                    ? "text-zinc-900 dark:text-zinc-50"
-                    : "text-zinc-500 hover:text-zinc-900 hover:before:bg-zinc-100/60 dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:before:bg-white/[0.04]",
-                )}
-              >
-                <span className={isActive ? "font-medium" : ""}>{tab.label}</span>
-                <span className="ml-1 text-xs tabular-nums text-zinc-500 dark:text-zinc-500">
-                  {count}
-                </span>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-      </div>
+      <TabBar tabs={TABS} counts={counts} active={active} />
 
       {TABS.map((tab) => {
         const rows = rowsFor(tab.value, answered, entries);
@@ -166,15 +121,15 @@ export function AnswerBankTabs({ entries }: { entries: AnswerBankEntry[] }) {
               </GlassCard>
             ) : (
               <GlassCard className="overflow-hidden">
-                <ul className="divide-y divide-zinc-200/60 dark:divide-white/10">
+                <ul className="list-divide">
                   {rows.map((entry) => (
                     <li key={entry.id}>
                       <Link
                         href={rowHref(entry.id)}
                         onClick={(e) => onRowClick(e, rowHref(entry.id))}
                         className={cn(
-                          "group flex items-center gap-4 px-5 py-4 transition-colors duration-150 hover:bg-zinc-900/[0.025] dark:hover:bg-white/[0.03]",
-                          entry.id === selectedId && SELECTED_ROW_CLASS,
+                          "group list-row",
+                          entry.id === selectedId && "row-selected",
                         )}
                       >
                         <div className="min-w-0 flex-1">
