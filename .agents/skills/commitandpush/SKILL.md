@@ -9,7 +9,7 @@ Commit every pending change in the working tree as a series of atomic, conventio
 
 ## Project context
 
-This repo is a hybrid: the agent **skills** and **scaffolding** are public and meant to be shared via the GitHub remote, but the user keeps **private career data** (resume notes, company research, application drafts, preferences) inside the same working tree. Privacy here is enforced by per-folder `.gitignore` files that ignore everything (`*`) and explicitly whitelist the public files (`AGENTS.md`, `README.md`, `*.example.md`, `EXAMPLE.md`, `.gitignore` itself).
+This repo is a hybrid: the agent **skills** and **scaffolding** are public and meant to be shared via the GitHub remote, but the user keeps **private career data** (resume notes, company research, application drafts, answer bank, preferences) inside the same working tree. Privacy here is enforced primarily by the root `.gitignore` rule `*.md` combined with whitelist entries (`!AGENTS.md`, `!CLAUDE.md`, `!README.md`, `!*.example.md`, `!.agents/skills/**/*.md`) plus a per-folder `context/.gitignore` that ignores everything (`*`) and whitelists the same public scaffolding files. Any new instance markdown under `applications/`, `companies/`, or `answer-bank/` is automatically gitignored by the root rule.
 
 Your job is to honor that boundary on every commit — never push the user's private content to the public remote.
 
@@ -33,18 +33,20 @@ For each path that would be committed (modified, staged, or untracked):
 
 **Public — safe to commit:**
 
-- `AGENTS.md`, `CLAUDE.md`, `README.md` at any depth
+- `AGENTS.md`, `CLAUDE.md`, `README.md`, `SCHEMA.md` at any depth
 - `.agentsignore`, `.gitignore` at any depth
 - Anything under `.agents/skills/**` or `skills/**` (skill definitions are public)
 - Files matching `*.example.md` or named `EXAMPLE.md`
+- Anything under `web/src/**`, `web/public/**`, and top-level `web/` config files (the Next.js app is public)
 - Top-level config / scaffolding files that already exist in `git ls-tree -r HEAD --name-only`
 
 **Private — must NOT be committed unless ignored:**
 
 - Anything under `context/` that is not `AGENTS.md`, `README.md`, or `*.example.md` (e.g. `context/index.md`, `context/preferences.md`, `context/resume.pdf`, `context/<project>/...`)
-- Anything under `companies/in-review/`, `companies/interested/`, `companies/applied/` (other than `.gitignore` and any `EXAMPLE.md`)
-- Anything under `applications/in-review/` or `applications/applied/` (other than `.gitignore`, `AGENTS.md`, and `EXAMPLE.md`)
-- Anything else that reads like personal narrative, resume content, cover-letter drafts, or named-company notes
+- Anything under `applications/<status>/` where `<status>` is any of: `in-review`, `applied`, `interview`, `rejected`, `offered`, `withdrawn`, `not-interested`
+- Anything under `companies/<status>/` where `<status>` is any of: `in-review`, `interested`, `not-interested`
+- Anything under `answer-bank/<theme>/` (every theme subfolder holds canonical answers — all personal)
+- Anything else that reads like personal narrative, resume content, cover-letter drafts, named-company notes, or interview answers
 
 When unsure, treat it as private.
 
