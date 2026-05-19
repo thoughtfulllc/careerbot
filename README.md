@@ -4,6 +4,8 @@ An AI career assistant. It researches companies, finds open roles that match you
 
 ![Careerbot dashboard](./docs/dashboard.png)
 
+**CLI-first.** The actual work happens through slash commands in Claude Code (or any AI that supports skills): researching companies, scanning careers pages, drafting answers tailored to each role. The web dashboard is for browsing the same files in a friendlier view, with sorting, filtering, and quick edits for the moments when clicking is faster than typing into the AI. Both interfaces stay in sync because they read and write the same local markdown files.
+
 Careerbot stores **everything as local markdown files** under `applications/`, `companies/`, and `answer-bank/`. One file per application, company, or saved answer. Status is encoded by the parent folder, so a status change is just a `git mv`.
 
 
