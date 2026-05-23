@@ -11,7 +11,7 @@ ideas.md  →  /find-companies  →  in-review/<slug>.md  →  you decide  →  
 ```
 
 - **`ideas.md`** — your scratchpad. Drop in URLs, company names, or short notes about anywhere you'd consider working. `/find-companies` reads this alongside `context/preferences.md` to decide what to research.
-- **`in-review/`** — `/find-companies` writes a deep profile per company here when it scores at or above the minimum match threshold. You review.
+- **`in-review/`** — `/find-companies` writes a deep profile per company here when it scores at or above the minimum match threshold. `/find-roles` also writes lightweight stubs here (frontmatter only, `discovered_via: find-roles`) when it surfaces a hiring company you haven't researched yet — promote the good ones to `interested/`, send the rest to `not-interested/`. You review either way.
 - **`interested/`** — companies you've decided you want to be considered for. `/find-roles` walks this folder looking for matching open roles and drafts applications into `applications/in-review/`.
 - **`not-interested/`** — companies you've ruled out, OR that `/find-companies` scored below the minimum match threshold (with the reason recorded). Skills won't re-surface anything in here. (Note: "not-interested" here means *you* passed on the company — distinct from `applications/rejected/`, which is a company rejecting an application.)
 

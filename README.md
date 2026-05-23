@@ -46,7 +46,7 @@ These are the slash commands the AI agent exposes. Each one reads from and write
 | `/find-companies` | Finds companies matching your preferences and writes one profile per match. Bad matches go to a rejected/ folder so they never resurface. | `companies/in-review/<slug>.md` + `companies/not-interested/<slug>.md` |
 | `/add-company` | Lightweight single-target version of `/find-companies`. Add one company you already know you want. | `companies/interested/<slug>.md` |
 | `/add-application` | Paste a job posting URL. Fetches the JD, drafts answers from your Answer Bank, auto-adds the company if not tracked. | `applications/in-review/<co>/<ats-id>-<title-slug>.md` |
-| `/find-roles` | Walks every interested company, scans its careers page, filters open roles against your preferences, drafts one application per match. Reuses Answer Bank entries. | `applications/in-review/<co>/<id>.md` |
+| `/find-roles` | Finds matching open roles across your tracked companies *and* companies you haven't researched yet (via title-wide ATS search and recent YC batches). Drafts one application per match and auto-stubs newly discovered companies into `companies/in-review/`. Reuses Answer Bank entries. | `applications/in-review/<co>/<id>.md` + `companies/in-review/<slug>.md` (stubs) |
 | `/seed-answer-bank` | Interactively fills any empty answer-bank stubs that `/find-roles` flagged as gaps. | `answer-bank/<theme>/<slug>.md` |
 | `/draft-missing-answers` | Re-synthesizes application answers left as TODOs or `[partial - pending: ...]` placeholders, once their underlying stubs are filled. | Edits in place under `applications/in-review/<co>/<id>.md` |
 | `/applicationstatus` | Moves an application between status folders and stamps the matching date field. | `git mv` between `applications/<status>/` folders |
@@ -81,20 +81,20 @@ By default the dashboard auto-detects the repo by walking up from `process.cwd()
                        │                                │
                        ▼                                ▼
         ┌──────────────────────────┐    companies/interested/<slug>.md
-        │  companies/in-review/    │
-        └──────────────────────────┘                    │
-                  │                                     │
-              (you decide; mv file                      │
-               or click in dashboard)                   │
-                  │                                     │
-        ┌─────────┴──────────┐                          │
-        ▼                    ▼                          │
-   .../interested/      .../not-interested/             │
-        │                                               │
-        └────────────────┬──────────────────────────────┘
-                         │
-                         ▼
-                    /find-roles
+        │  companies/in-review/    │◀╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┐
+        └──────────────────────────┘                    │   ╎
+                  │                                     │   ╎
+              (you decide; mv file                      │   ╎
+               or click in dashboard)                   │   ╎
+                  │                                     │   ╎
+        ┌─────────┴──────────┐                          │   ╎
+        ▼                    ▼                          │   ╎
+   .../interested/      .../not-interested/             │   ╎ *
+        │                                               │   ╎
+        └────────────────┬──────────────────────────────┘   ╎
+                         │                                  ╎
+                         ▼                                  ╎
+                    /find-roles ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┘
                          │
                          ▼
           applications/in-review/<co>/<id>.md
@@ -105,6 +105,8 @@ By default the dashboard auto-detects the repo by walking up from `process.cwd()
                          ▼
     applied/ → interview/ → offered/  /  rejected/  /  withdrawn/
 ```
+
+\* `/find-roles` also auto-stubs newly discovered companies (from its title-wide ATS search and recent YC batches) back into `companies/in-review/`, so anything it surfaces enters the same review loop.
 
 Every status change is a `git mv` between status folders. The folder layout *is* the status column, whether you trigger the move from the CLI or by clicking in the dashboard.
 
