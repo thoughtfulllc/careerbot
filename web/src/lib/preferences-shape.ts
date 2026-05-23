@@ -8,6 +8,8 @@ export interface Preferences {
     titles: string[];
     track: Track;
     specialties: string[];
+    exclude_titles: string[];
+    title_synonyms: Record<string, string[]>;
   };
   compensation: {
     base_min_usd: number | null;
@@ -57,6 +59,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
     // user can flip it on the Configuration page before they ever save.
     track: "IC",
     specialties: [],
+    exclude_titles: [],
+    title_synonyms: {},
   },
   compensation: {
     base_min_usd: null,

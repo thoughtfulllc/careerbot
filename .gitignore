@@ -11,3 +11,6 @@
 .playwright-mcp/
 before-answer-bank-filter.png
 after-answer-bank-filter.png
+
+# Per-run scratch state for /find-roles pipeline (stream JSONs, routed/final caches)
+.cache/

@@ -4,6 +4,8 @@
 - Titles I'm targeting (e.g. Senior Software Engineer, Staff Engineer, Engineering Manager)
 - Individual contributor vs. management
 - Specialties (e.g. Product/UX, Visual/Brand, Design systems)
+- Titles I want to NEVER surface (e.g. Game Designer, Engineering Manager, Sales Engineer)
+- Title synonyms (optional; leave blank for built-in defaults — e.g. `Design Engineer: UX Engineer, Design Technologist`)
 
 ## Compensation
 - Minimum base salary

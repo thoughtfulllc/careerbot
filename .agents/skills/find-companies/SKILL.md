@@ -43,35 +43,68 @@ For applications, collect the company-slug segment of the path: `applications/*/
 
 ### 3. Generate a candidate list
 
-Use whatever web-search and page-fetch capability is available to assemble candidate companies. **Aim to surface enough candidates that at least 10 will survive pre-filter and score ≥ 5** — in practice that means generating ~15–25 candidates per pass, since some will dedup out, some will get pre-filtered, and some will score low.
+Use `WebSearch` plus `WebFetch` to assemble candidates. **Aim to surface enough that at least 10 will survive pre-filter and score ≥ 5** — in practice ~15–25 candidates per pass.
 
-Pull from two buckets: **Seed** (always include) and **Discovery** (required quota).
+Pull from two buckets: **Seed** (always include) and **Discovery** (required quota — must come with a verifiable source URL).
+
+**Critical:** every Discovery candidate must be backed by a real URL you actually fetched (a YC company page, a Greenhouse/Lever/Ashby board, a funding-announcement article). If you cannot produce that URL on demand, the candidate is name-from-memory and does NOT count toward the Discovery quota.
 
 #### 3a. Seed bucket (always include)
 
-- **`companies/ideas.md`** — always include every entry here that doesn't already exist in `companies/`. Format is loose: bare URLs, bare names, optional `- note` suffix, markdown headings as informal groupings.
+- **`companies/ideas.md`** — include every entry that doesn't already exist in `companies/`. Format is loose: bare URLs, bare names, optional `- note` suffix, markdown headings as informal groupings. **Skip any entry that looks like an example placeholder** (`example.com`, `acme.*`, `beta.ai`, `Acme Corp`, `Beta Inc`) — those are leftovers from the example file.
 - **"If you like X, you might like Y" look-alikes** — for each company in `companies/ideas.md` AND each company under `companies/interested/`, generate 1–3 similar companies. "Similar" means competing in the same space, building adjacent products for the same audience, sharing engineering DNA (ex-employees, similar stack), or otherwise occupying the same niche. Skip the source company itself; only emit the look-alikes.
 - The named-companies list in `preferences.md` (always include any not already on file).
 - Industry peers in each target industry from `preferences.md`.
 - Companies whose tech stack and product overlap with the user's resume and project work.
 
-#### 3b. Discovery sources (required — at least 8 candidates per round)
+#### 3b. Discovery sources (required — at least 8 candidates per round, each with a fetched source URL)
 
-Look-alikes and seeds skew toward famous names the user already knows. To surface startups the user wouldn't otherwise see, **at least 8 of each round's candidates must come from these directories** (not the seed bucket above). Actually fetch the pages — don't generate from memory.
+Look-alikes and seeds skew toward names the user already knows. To surface startups they wouldn't otherwise see, **at least 8 of each round's candidates must come from these sources**. Fan the fetches out in parallel — issue them as a single batch of tool calls, not one at a time.
 
-- **Y Combinator company directory** — `https://www.ycombinator.com/companies` filtered by industry (`AI`, `Developer Tools`, `Design Tools`, `Consumer`), stage (`Active`), and recent batches (e.g. `W24`, `S24`, `W25`, `S25`, `F25`, `W26`). Page through results — don't stop at page 1.
-- **Wellfound (AngelList Talent)** — `https://wellfound.com/startups` filtered by industry tags matching `preferences.md` and Series A–C.
-- **Product Hunt category leaders** — `https://www.producthunt.com/categories/{ai,design-tools,developer-tools,productivity}` recent launches, then trace each launch back to the company behind it.
-- **Recently funded lists** — TechCrunch / The Information / Crunchbase News funding-announcement roundups for the last 90 days, filtered to seed–Series C in target industries.
-- **GitHub trending** — `https://github.com/trending?since=monthly` filtered to languages/topics from `preferences.md` (TypeScript, React, design-systems, AI), then look up the company behind notable repos.
+The directories listed below are picked specifically because they are *fetchable* (server-rendered HTML, public JSON, or well-indexed by Google so `WebSearch` works). The old skill pointed at SPAs like `ycombinator.com/companies` and `wellfound.com/startups` that return empty shells to `WebFetch`; those are intentionally NOT in this list.
 
-A candidate counts toward the Discovery quota only if the user is unlikely to already know it. Rough proxy: if it would appear in the top 50 results for "best AI startups 2025" or "best design tools 2025," it does NOT count toward Discovery — put it in Seed (look-alike bucket) instead. If a round comes back with only household names, redo candidate generation with heavier weight on YC/Wellfound directory pages 2–5, not page 1.
+**Primary: ATS-level discovery (jobs-first → company)**
 
-#### 3c. Dedup and label
+This is the highest-signal path because a live job posting implies the company is actively hiring for the role the user wants. For each role title and location combo from `preferences.md`, run two or three `WebSearch` queries like:
 
-**Before adding a candidate to the research queue, check it against the already-known set from step 2 and drop it if it matches.** When checking against `not-interested/`, normalize for common slug variants (e.g. `cal-com` vs `calcom`, `hugging-face` vs `huggingface`) before deciding. Don't waste a subagent on a company that's already on file.
+- `site:boards.greenhouse.io "<role title>" "<location or remote>"`
+- `site:job-boards.greenhouse.io "<role title>" "<location or remote>"`
+- `site:jobs.lever.co "<role title>" "<location or remote>"`
+- `site:jobs.ashbyhq.com "<role title>" "<location or remote>"`
+- `site:jobs.workable.com "<role title>" "<location or remote>"`
 
-Track each surviving candidate's source so the final summary table (step 7) can label it: `Discovery (YC W25)`, `Discovery (Wellfound)`, `Look-alike (Linear)`, `Seed (ideas.md)`, `Seed (preferences.md)`, etc.
+The URL path segment after the host is the company slug (e.g. `boards.greenhouse.io/anthropic` → `anthropic`). Dedupe to company-level — multiple postings from the same company collapse to one candidate. Optionally hit the public JSON to confirm the board is live:
+
+- Greenhouse: `https://boards-api.greenhouse.io/v1/boards/<slug>/jobs`
+- Lever: `https://api.lever.co/v0/postings/<slug>?mode=json`
+- Ashby: `https://api.ashbyhq.com/posting-api/job-board/<slug>`
+
+**Secondary: Y Combinator (directory-first → check for jobs)**
+
+YC's main `/companies` directory is a JS SPA and does NOT respond to `WebFetch`. Use these alternatives instead:
+
+- **`https://www.workatastartup.com/companies`** — YC's official jobs board, server-rendered, filterable by role/remote/batch. This is the right primary YC surface.
+- **`https://yc-oss.github.io/api/companies/all.json`** — community-maintained JSON of every YC company with batch/industry/status tags. One fetch returns the entire directory; filter client-side by `batch in [W24, S24, W25, S25, F25, W26]`, `status: Active`, and industry tags matching `preferences.md`.
+- **`WebSearch` fallback** — `site:ycombinator.com/companies/ <industry> <batch>` surfaces individual indexed company pages.
+
+**Tertiary: funding-announcement roundups**
+
+`WebSearch` queries like `"raised" "Series A" <target industry> 2026 site:techcrunch.com` or the same against `news.crunchbase.com`. Filter to seed–Series C in target industries within the last 90 days.
+
+**Do not use** (previously listed but not actually fetchable in practice): Wellfound `/startups` (auth-walled SPA), Product Hunt category pages (infinite-scroll JS), GitHub trending (rarely maps cleanly to a company). If you can find a fetchable equivalent for any of these, fine — otherwise skip them rather than rationalizing memory-generated names as "Discovery (Wellfound)".
+
+A candidate counts toward the Discovery quota only if (a) you fetched the source URL this run and (b) the user is unlikely to already know it. Rough proxy for (b): if it would appear in the top 50 results for "best AI startups 2025," it does NOT count toward Discovery — put it in Seed (look-alike) instead.
+
+#### 3c. Dedup, verify, and label
+
+**Before adding a candidate to the research queue:**
+
+1. Check it against the already-known set from step 2 and drop it if it matches. When checking against `not-interested/`, normalize for common slug variants (e.g. `cal-com` vs `calcom`, `hugging-face` vs `huggingface`) before deciding.
+2. For Discovery candidates, confirm the source URL is one you actually fetched this run — not one you remember existing. If you can't quote the fetched URL, downgrade the candidate to Seed (look-alike) or drop it.
+
+Track each surviving candidate's source so the final summary table (step 7) can label it precisely: `Discovery (Greenhouse: anthropic)`, `Discovery (YC W25 via workatastartup)`, `Discovery (yc-oss API)`, `Discovery (TechCrunch funding roundup)`, `Look-alike (Linear)`, `Seed (ideas.md)`, `Seed (preferences.md)`, etc. The source label must reference the concrete fetched artifact, not the abstract bucket.
+
+**Self-check before moving to step 4:** if fewer than 8 of your candidates have a Discovery source URL you actually fetched this round, go back and run more ATS-level or YC searches. Don't proceed with a round that's secretly all Seed.
 
 ### 4. Pre-filter the candidates
 
@@ -103,7 +136,7 @@ If the host harness has no sub-agent mechanism, fall back to researching candida
 
 ### 6. Top up if under 10 new profiles
 
-After all subagents return, count the new files added to `companies/in-review/` this run. **If that count is below 10**, return to step 3 and generate a fresh batch of candidates — biased toward dimensions you haven't exhausted yet (e.g. more look-alikes for `interested` entries you haven't mined, different target industries, different funding stages). Re-apply step 2's dedup check (the already-known set has grown — include the files you just wrote). Dispatch another parallel research round. Repeat until you've landed at least 10 new `in-review/` profiles, or until you've genuinely exhausted plausible candidates (in which case say so explicitly in the final report).
+After all subagents return, count the new files added to `companies/in-review/` this run. **If that count is below 10**, return to step 3 and generate a fresh batch of candidates — biased toward dimensions you haven't exhausted yet (e.g. more `site:boards.greenhouse.io` searches with different role titles or locations, a different YC batch slice from the `yc-oss` JSON, different target industries, different funding stages). Re-apply step 2's dedup check (the already-known set has grown — include the files you just wrote). Dispatch another parallel research round. Repeat until you've landed at least 10 new `in-review/` profiles, or until you've genuinely exhausted plausible candidates (in which case say so explicitly in the final report).
 
 ### 7. Render a summary table
 
@@ -213,7 +246,7 @@ The subagent should investigate:
 
 ## Constraints
 
-- **Bias toward companies the user is unlikely to already know.** Famous unicorns (Stripe, Notion, Figma class) are fine to include if they fit, but they don't count toward the Discovery quota in step 3b. If a round comes back with only household names, redo candidate generation with heavier weight on YC/Wellfound directory pages 2–5.
+- **Bias toward companies the user is unlikely to already know.** Famous unicorns (Stripe, Notion, Figma class) are fine to include if they fit, but they don't count toward the Discovery quota in step 3b. If a round comes back with only household names, redo candidate generation with heavier weight on ATS-level searches (Greenhouse/Lever/Ashby `site:` queries) and the `yc-oss` JSON dump filtered to recent batches.
 - **Never invent facts.** If something can't be verified, omit it or say "not publicly disclosed."
 - **Never create a duplicate file.** Always check `companies/{in-review,interested,not-interested}/<slug>.md` before writing; skip if any exists.
 - **Never re-surface a not-interested company.** Anything in `companies/not-interested/` is final unless the user explicitly removes it.

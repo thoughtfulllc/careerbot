@@ -112,6 +112,9 @@ notes: ""
 | `offices` | list of strings | no | Other office locations |
 | `remote_policy` | enum | no | `remote` \| `hybrid` \| `onsite` |
 | `careers_url` | string (URL) | no | Public careers / jobs page; renders next to **Open roles** in the UI |
+| `ats` | enum | no | Which ATS hosts the careers page. `greenhouse` \| `lever` \| `ashby` \| `workday` \| `smartrecruiters` \| `workable` \| `custom`. Populated by `/find-roles` backfill (`lib/backfill_ats_metadata.py`). |
+| `ats_slug` | string | no | The slug on that ATS (the path segment after the host). For Workday, format is `<tenant>/wd<N>/<site>` (e.g. `adobe/wd5/external_experienced`). For all others, a single token. |
+| `discovered_via` | enum | no | How this company entered the tree. `find-roles` \| `find-companies` \| `add-company` \| `manual`. Set on stub creation; never updated thereafter. |
 | `researched_on` | date | no | When the dossier was written |
 | `not_interested_reason` | string | no | Required iff `status = not-interested`; otherwise `null` |
 
@@ -146,6 +149,8 @@ hq: "San Francisco, CA"
 offices: ["San Francisco, CA", "Dublin, IE"]
 remote_policy: hybrid
 careers_url: "https://stripe.com/jobs"
+ats: greenhouse
+ats_slug: stripe
 researched_on: 2026-05-12
 not_interested_reason: null
 ---
@@ -288,6 +293,9 @@ CREATE TABLE companies (
   offices TEXT,              -- JSON array
   remote_policy TEXT CHECK (remote_policy IN ('remote','hybrid','onsite')),
   careers_url TEXT,
+  ats TEXT CHECK (ats IN ('greenhouse','lever','ashby','workday','smartrecruiters','workable','custom')),
+  ats_slug TEXT,
+  discovered_via TEXT CHECK (discovered_via IN ('find-roles','find-companies','add-company','manual')),
   researched_on DATE,
   not_interested_reason TEXT,
   body TEXT

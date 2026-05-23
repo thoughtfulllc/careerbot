@@ -26,37 +26,138 @@ If `context/preferences.md` or `context/index.md` is missing, stop.
 
 ## Workflow
 
-For each company file under `companies/interested/`:
+### 1. Preflight checks
 
-### 1. Build the dedup set
-
-Before fetching anything, walk every existing application across **all** status folders for this company:
+Before discovery, run a cheap sanity pass and surface the results to the user inline. These checks don't gate the run; they set expectations.
 
 ```bash
-ls applications/*/<company-slug>/*.md 2>/dev/null
+python3 .agents/skills/find-roles/scripts/preflight.py .
 ```
 
-For each existing file, grep out the `url:` and `ats_id:` values from the frontmatter. Collect them into a set. Any posting matching one of these is already on file and must be skipped. **Crucially: don't re-surface roles you were rejected from, withdrew from, or marked not interested**, so the skip applies across all seven status folders, not just `applied/` and `in-review/`.
+Surface in the user-facing message:
 
-### 2. Locate the careers page
+- **`answer-bank/voice/` empty?** Warn that essay synthesis quality will be degraded until at least one voice sample is added via `/seed-answer-bank`.
+- **`companies/interested/` ATS coverage** — if fewer than half of company files have `ats:` resolved in frontmatter, suggest running the backfill once: `python3 .agents/skills/find-roles/scripts/backfill_ats_metadata.py --dir companies/interested`.
+- **Identity bank gaps** — list any canonical identity slugs (`legal-name`, `email`, `phone`, etc.) that are missing or stub-only. Every drafted application will have TODO holes until those are filled.
 
-Check the company's profile body (`companies/interested/<slug>.md`) for an explicit careers URL first — usually under the `## Open roles` heading. If none, use WebSearch to find the official careers/jobs page (Greenhouse, Lever, Ashby, Workday, or in-house). Prefer the canonical job board over aggregators (LinkedIn, Indeed) — the canonical board has the real ATS IDs and application questions.
+**Optional pre-run sanity check** (run if any ATS adapter starts returning empty unexpectedly — Workday especially is known for schema drift):
 
-### 3. Pull open roles and filter
+```bash
+python3 .agents/skills/find-roles/scripts/test_adapters.py
+```
 
-Fetch the listing index. For each role, decide match vs. no-match against `preferences.md`:
+36 tests covering live adapter calls (one known-good company per ATS) + title / location / freshness regression cases. Network-required; use `--filters-only` for offline regression coverage.
 
-- **Title** — match the role to the titles/levels listed in `preferences.md`. Reject obvious mismatches outside the user's domain.
-- **Location** — must be compatible with the locations/remote policy in `preferences.md`.
-- **Comp** — if the posting lists comp, enforce any salary/total-comp floor. If not listed, don't reject on that alone; flag it in the body.
-- **Industry / culture** — apply the avoid list strictly. Hard filter, not tiebreaker.
-- **Tech stack** — prefer roles using stacks the user wants; deprioritize avoided stacks but don't auto-reject unless marked hard-avoid.
+### 2. Discover leads — three parallel streams
 
-Be selective. A handful of strong matches beats a dump of weak ones.
+The discovery phase searches **role-first, not company-first**. `companies/interested/` is a ranking signal, not a gate. Roles at companies the user hasn't yet researched still surface — we just route them to a `new-discovery` bucket and run a quick industry hard-filter before drafting.
 
-### 4. For each match, fetch the actual posting
+Three streams run in parallel. Their outputs converge into one unified lead list.
 
-Open the role's individual page. Extract:
+#### 2a. Stream A — Title-wide ATS search (skill prompt issues WebSearch calls)
+
+The query list is **derived from `context/preferences.md`**, not hardcoded. To get the queries the current preferences produce:
+
+```bash
+python3 .agents/skills/find-roles/scripts/role_config.py --print-queries
+```
+
+This generates N × M queries where N is the number of ATS hosts (`site:boards.greenhouse.io`, `site:job-boards.greenhouse.io`, `site:jobs.ashbyhq.com`, `site:jobs.lever.co`) and M is the number of title groups derived from `role.titles` + `role.specialties` (capped at 6 groups by default; for the standard 2-title + 4-specialty preferences this is 20 queries).
+
+How groups are derived:
+- One group per entry in `role.titles`, with synonyms ORed (e.g. `("Design Engineer" OR "UX Engineer" OR "Design Technologist" OR "Design Systems Engineer")`).
+- One additional group per `role.specialty` that maps to a known role-name family (e.g. `Visual/Brand` → `("Visual Designer" OR "Brand Designer")`; `Design systems` → `("Design Systems Designer" OR "Design Systems Engineer")`).
+- Synonyms come from a built-in registry plus `role.title_synonyms` (user overrides).
+- Level-prefix variants (Senior / Sr / Sr.) auto-expand from a single user-entered "Senior X" title — no need to enumerate.
+
+Read the queries from `--print-queries` output, issue them all in parallel via `WebSearch`. Collect ALL URLs from ALL responses, save as a JSON list of `{url, title, description}` to `.cache/find-roles/stream-a-hits.json`.
+
+#### 2b. Phase 1: discover — run all three streams + route in one in-process pipeline
+
+```bash
+python3 .agents/skills/find-roles/scripts/pipeline.py discover \
+  --workdir .cache/find-roles \
+  --companies-dir companies/interested \
+  --companies-root companies \
+  --dedup-from applications/in-review \
+  --dedup-from applications/applied \
+  --dedup-from applications/interview \
+  --dedup-from applications/rejected \
+  --dedup-from applications/offered \
+  --dedup-from applications/withdrawn \
+  --dedup-from applications/not-interested \
+  --freshness-days 90 \
+  --yc-max-candidates 40
+```
+
+The `discover` command runs all three streams in parallel **in-process** (no `/tmp/` JSON pipes between scripts):
+
+- **Stream A** — parses `.cache/find-roles/stream-a-hits.json`, extracts `(ats, ats_slug, ats_id)` from each URL, groups by slug, calls the corresponding ATS adapter once per slug, filters to roles whose `ats_id` was in the search hits. Tags leads with `stream: "A"`.
+- **Stream B** — per-company sweep of `companies/interested/` boards. Tags leads with `stream: "B"`. Catches edge cases the title-wide search missed.
+- **Stream C** — fetches `yc-oss.github.io/api/companies/all.json`, filters to recent batches (W24-W26) + `isHiring: true` + industry tags matching `preferences.md.industries_want`. Probes adapters per candidate, capped at `--yc-max-candidates 40`. Tags leads with `stream: "C"`.
+
+Then it merges all three, applies title/location/freshness filters via `scripts/filters.py`, dedups against every existing application (URL + ATS-id + content-hash), and routes each lead by which `companies/<status>/` folder its company lives in:
+
+- Company in `companies/interested/` → `priority: known-good`
+- Company in `companies/in-review/` → `priority: in-review`
+- Company in `companies/not-interested/` → **DROP** (user already passed)
+- Company nowhere in `companies/` → `priority: new-discovery` (added to `unknown-slugs.json` for industry check)
+
+Outputs `.cache/find-roles/routed.json` and `.cache/find-roles/unknown-slugs.json`.
+
+**Per-component CLIs still exist for debugging:** if you need to test one stream in isolation, `scripts/find_roles.py`, `scripts/streams/title_search.py`, and `scripts/streams/yc.py` still run standalone.
+
+#### 2e. Industry hard-filter for unknown companies (skill prompt + LLM judgment)
+
+For each slug in `.cache/find-roles/unknown-slugs.json`, do a quick industry check before surfacing the lead. **Skip this for known-good and in-review** companies — they were already vetted by `/find-companies`.
+
+**Recommended approach: LLM-judgment via subagent.** Spawn ONE subagent with the full unknown-slug list. The subagent's job:
+
+1. For each slug, issue ONE `WebSearch` with a CLEAN query — just the company name + "company" or "what they do" (e.g. `"Mintlify" company what they do`). **Do NOT use OR-clauses with defense/gambling keywords in the query** — that drags in topical boilerplate (news articles about military gambling addiction, etc.) which causes false positives.
+2. Read the snippets carefully. A company is **blocked** only if its core product / customers are defense or gambling. A SaaS tool whose customers happen to include a defense agency is CLEAN; a company that builds weapons / runs a sportsbook is BLOCKED.
+3. Output a JSON file to `.cache/find-roles/industry-output.json` with one verdict per slug:
+   ```json
+   { "<slug>": {"status": "clean" | "blocked" | "skipped", "reason": "<one sentence>", "company_name": "<humanized>"} }
+   ```
+
+**Why LLM judgment, not regex:** keyword regex over WebSearch snippets has high false-positive rate. SEO-spam pages, AI-roundup articles, and topical news boilerplate frequently mention "DoD" or "gambling" without those being relevant to the company. Smoke-test verdict: regex with OR-keyword queries blocked 20/21 unrelated clean companies. The cheap regex (`scripts/industry_check.py`) is preserved as a fallback but is NOT the primary path.
+
+**Fallback: regex check on user-provided structured input.** If the skill prompt builds a clean `industry-input.json` shaped like `{slug: {company_name, search_hits, homepage_text}}` (where searches used clean queries, not OR-keyword), the script `scripts/industry_check.py --input ...` will analyze it via regex on the user's `industry_check_blockers` list. Useful for batch revalidation but not the primary flow.
+
+Cache verdicts per slug for the run. Don't re-check a slug that already has a verdict.
+
+#### 2d. Phase 2: finalize — apply industry filter, sort, cap, auto-stub
+
+```bash
+python3 .agents/skills/find-roles/scripts/pipeline.py finalize \
+  --workdir .cache/find-roles \
+  --industry .cache/find-roles/industry.json \
+  --companies-root companies \
+  --max-total 80 \
+  --known-good-cap 30 \
+  --in-review-cap 10 \
+  --new-discovery-cap 40 \
+  --write-stubs
+```
+
+What this does:
+
+- **Industry filter** — for each new-discovery lead, look up `<slug>` in `industry.json`. If verdict is `blocked`, drop. If `skipped`, surface with `⚠` flag. If `clean`, surface normally.
+- **Sort** by `(priority_rank, confidence_rank, -recency_days)`. `known-good > in-review > new-discovery`; `high > medium > low` confidence; newer first.
+- **Per-priority cap with downward cascade.** Up to 30 known-good + 10 in-review + 40 new-discovery = 80 total. Unused slots in known-good cascade to in-review, then to new-discovery. Surplus new-discovery is dropped (never backfills upper buckets).
+- **Auto-stub** new-discovery companies that survived the cap → minimal `companies/in-review/<slug>.md` files (frontmatter only, `discovered_via: find-roles`). Idempotent. Connects find-roles back into the `/find-companies` flow.
+
+Outputs `.cache/find-roles/final.json` (the final ≤80 leads) and `.cache/find-roles/stubs.json` (the company stubs created).
+
+**Per-component CLIs still exist for debugging:** `scripts/auto_stub.py` still runs standalone if you need to write stubs from a previously-generated `stubs.json` without re-running the pipeline.
+
+### 3. (deprecated — Stream A in step 2a replaced this)
+
+The cross-cutting search pass from v1 is now Stream A. No separate step.
+
+### 4. For each lead in `.cache/find-roles/final.json`, fetch the full posting
+
+For each lead in `.cache/find-roles/final.json` (from step 2d), open the role's individual page at `posting_url`. Extract:
 
 - Canonical job title and ATS ID (the numeric/slug ID in the URL).
 - Source (which ATS — used to populate the `source` frontmatter field).
@@ -316,9 +417,17 @@ Drafting guidance:
 
 ### 9. Report back
 
-After processing all companies, give the user:
+After processing all leads, give the user:
 
-- Companies scanned, companies skipped (all open roles already in pipeline).
+- **Discovery summary** from `.cache/find-roles/final.json` and the two `pipeline.py` JSON outputs (discover + finalize):
+  - Total leads in each phase: merged → after filter → after dedup → after status route → after industry filter → final (capped).
+  - **By priority:** known-good / in-review / new-discovery counts in the final 80.
+  - **By stream:** A (title-wide search) / B (interested sweep) / C (YC firehose).
+  - **By confidence:** high / medium / low.
+  - **By source:** greenhouse / lever / ashby / workday / workable / custom.
+  - **Industry filter drops:** count + first 3 examples (slug, reason, matched keywords) so the user can audit.
+  - **Skipped (industry not verified):** count + slug list. These surface with a `⚠` flag — user can manually confirm.
+- **Stubs auto-created:** count + list of `companies/in-review/<slug>.md` files written this run. (User can promote any to `interested/` via `/applicationstatus`-style move, or kick to `not-interested/`.)
 - New application files created, grouped by company. Include the file path and a one-line "why this matched."
 - Answer-bank reuse stats: how many essays were full-synth vs. partial-synth vs. all-TODO.
 - **Stubs generated this run** — grouped by theme, with paths and the generated question. Example:

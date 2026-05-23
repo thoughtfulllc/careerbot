@@ -68,6 +68,8 @@ export function renderPreferencesMarkdown(p: Preferences): string {
 - Titles I'm targeting: ${p.role.titles.join(", ") || "TBD"}
 - Track: ${p.role.track}
 - Specialties: ${p.role.specialties.join(", ") || "TBD"}
+- Titles to exclude: ${p.role.exclude_titles.join(", ") || "(none)"}
+- Title synonyms: ${Object.entries(p.role.title_synonyms).map(([k, v]) => `${k} → ${v.join(", ")}`).join("; ") || "(none)"}
 
 ## Compensation
 - Minimum base salary: ${formatUsd(p.compensation.base_min_usd)}

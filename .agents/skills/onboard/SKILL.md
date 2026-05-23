@@ -87,7 +87,7 @@ If the target file does not exist, `cp` from the example. If it exists, leave it
 **Schema** (matches `web/src/lib/preferences.ts` `Preferences` type):
 ```ts
 {
-  role: { titles: string[], track: "IC" | "Management", specialties: string[] },
+  role: { titles: string[], track: "IC" | "Management", specialties: string[], exclude_titles: string[], title_synonyms: Record<string, string[]> },
   compensation: { base_min_usd: number | null, total_comp_target_usd: number | null, equity_open_to: string[] },
   location: { preferred_cities: string[], time_zones: string[], open_to_remote: boolean, open_to_hybrid: boolean, open_to_onsite: boolean, open_to_relocation: boolean, work_auth_us: boolean, needs_sponsorship: boolean },
   company: { stages: string[], size_range: string, industries_want: string[], industries_avoid: string[], excluded_companies: string[] },
@@ -121,6 +121,8 @@ After updating the in-memory Preferences object, the body of the file (everythin
 - Titles I'm targeting: <role.titles.join(", ") or "TBD">
 - Track: <role.track>
 - Specialties: <role.specialties.join(", ") or "TBD">
+- Titles to exclude: <role.exclude_titles.join(", ") or "(none)">
+- Title synonyms: <Object.entries(role.title_synonyms).map(([k,v]) => `${k} → ${v.join(", ")}`).join("; ") or "(none)">
 
 ## Compensation
 - Minimum base salary: <"$" + base_min_usd.toLocaleString() or "TBD">
@@ -165,12 +167,16 @@ Question prompts to use:
 - "What job titles are you targeting? (comma-separated, e.g. `Senior Product Designer, Staff Product Designer`)"
 - "IC track, management track, or both?"
 - "Specialties? (comma-separated, e.g. `Product/UX, Visual/Brand, Design systems, Prototyping/motion`)"
+- "Any role titles you want to NEVER surface, even if they otherwise match? (comma-separated, e.g. `Engineering Manager, Game Designer, Sales Engineer` — case-insensitive substring match; leave blank if none)"
+- "Title synonyms? Most users can leave blank — the skill has a built-in registry for common cases (e.g. Design Engineer ↔ UX Engineer / Design Technologist). Add entries here only if your titles have non-obvious equivalents you want surfaced. Format: `Title 1: Synonym A, Synonym B; Title 2: Synonym C`"
 
-Rewrite the three bullets as:
+Rewrite the five bullets as:
 ```
 - Titles I'm targeting: <answer>
 - <Individual contributor / Management / Both>
 - Specialties: <answer>
+- Titles to exclude: <answer or "(none)">
+- Title synonyms: <answer or "(none)">
 ```
 
 **Compensation section:**
