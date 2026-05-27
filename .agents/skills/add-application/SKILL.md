@@ -77,7 +77,7 @@ For each existing file, grep the `ats_id:` and `url:` lines from the frontmatter
 - **Refuse.** Print the existing file path and its current status (= the parent status folder).
 - Do NOT overwrite. If the user explicitly asks to "re-draft", proceed only after they confirm; even then, never wipe their manual edits silently.
 
-This dedup applies across **all seven status folders** (`in-review`, `applied`, `interview`, `rejected`, `offered`, `withdrawn`, `not-interested`). A posting the user already withdrew from or was rejected from is still "on file" and must not be re-drafted.
+This dedup applies across **all six status folders** (`in-review`, `applied`, `interview`, `rejected`, `offered`, `archived`). A posting the user already archived or was rejected from is still "on file" and must not be re-drafted.
 
 ### 5. Fetch the JD
 
@@ -181,7 +181,7 @@ Do NOT commit. The user runs `/commitandpush` when ready (and instance files und
 ## Hard rules
 
 - **One URL per run.** Never batch. If the user pastes multiple URLs, ask which one or tell them to use `/find-roles` for batch.
-- **Never duplicate.** Always dedup on `(company-slug, ats_id)` across all seven status folders before drafting. Refuse on match.
+- **Never duplicate.** Always dedup on `(company-slug, ats_id)` across all six status folders before drafting. Refuse on match.
 - **Status is always `in-review`.** This skill writes to `applications/in-review/<co>/<id>.md`. Status changes are `/applicationstatus`' job.
 - **Never submit.** This skill drafts. The user submits manually.
 - **Never fabricate.** If a required input is a stub or missing, write the TODO; never invent beliefs, stories, career facts, or skills. JD content is verbatim from the posting or from what the user pasted, never paraphrased.

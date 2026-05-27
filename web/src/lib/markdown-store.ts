@@ -203,7 +203,7 @@ function joinSize(headcount: string | null, stage: string | null, valuation: str
 }
 
 const APPLICATION_STATUS_SET = new Set<ApplicationStatus>([
-  "in-review", "applied", "interview", "rejected", "offered", "withdrawn", "not-interested",
+  "in-review", "applied", "interview", "rejected", "offered", "archived",
 ]);
 const COMPANY_STATUS_SET = new Set<CompanyStatus>([
   "in-review", "interested", "not-interested",

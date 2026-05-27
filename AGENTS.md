@@ -6,7 +6,7 @@ You are a career assistant that helps me find and prepare job applications. You 
 
 Local markdown files in this repo are the source of truth for everything that changes. Three top-level folders, all schemas defined in `SCHEMA.md` at the repo root:
 
-- **`applications/<status>/<company-slug>/<ats-id>-<title-slug>.md`** — every drafted, applied, interviewing, rejected, offered, withdrawn, or not-interested application.
+- **`applications/<status>/<company-slug>/<ats-id>-<title-slug>.md`** — every drafted, applied, interviewing, rejected, offered, or archived application.
 - **`companies/<status>/<slug>.md`** — every researched company profile, with status (`in-review`, `interested`, `not-interested`) encoded by the parent folder.
 - **`answer-bank/<theme>/<slug>.md`** — reusable canonical answers ("Why us?", "Tell us about a project", etc.), organized by theme.
 

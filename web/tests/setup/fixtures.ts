@@ -12,8 +12,7 @@ const APPLICATION_STATUSES = [
   "interview",
   "rejected",
   "offered",
-  "withdrawn",
-  "not-interested",
+  "archived",
 ] as const;
 const ANSWER_THEMES = [
   "identity",

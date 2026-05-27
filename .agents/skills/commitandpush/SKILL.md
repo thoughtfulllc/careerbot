@@ -43,7 +43,7 @@ For each path that would be committed (modified, staged, or untracked):
 **Private — must NOT be committed unless ignored:**
 
 - Anything under `context/` that is not `AGENTS.md`, `README.md`, or `*.example.md` (e.g. `context/index.md`, `context/preferences.md`, `context/resume.pdf`, `context/<project>/...`)
-- Anything under `applications/<status>/` where `<status>` is any of: `in-review`, `applied`, `interview`, `rejected`, `offered`, `withdrawn`, `not-interested`
+- Anything under `applications/<status>/` where `<status>` is any of: `in-review`, `applied`, `interview`, `rejected`, `offered`, `archived`
 - Anything under `companies/<status>/` where `<status>` is any of: `in-review`, `interested`, `not-interested`
 - Anything under `answer-bank/<theme>/` (every theme subfolder holds canonical answers — all personal)
 - Anything else that reads like personal narrative, resume content, cover-letter drafts, named-company notes, or interview answers

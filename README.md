@@ -103,7 +103,7 @@ By default the dashboard auto-detects the repo by walking up from `process.cwd()
               (or status change in dashboard)
                          │
                          ▼
-    applied/ → interview/ → offered/  /  rejected/  /  withdrawn/
+    applied/ → interview/ → offered/  /  rejected/  /  archived/
 ```
 
 \* `/find-roles` also auto-stubs newly discovered companies (from its title-wide ATS search and recent YC batches) back into `companies/in-review/`, so anything it surfaces enters the same review loop.

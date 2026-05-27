@@ -11,10 +11,8 @@ export const APPLICATION_PALETTE: Record<ApplicationStatus, string> = {
     "bg-rose-100/70 text-rose-800 ring-rose-200/70 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/20",
   offered:
     "bg-emerald-100/70 text-emerald-800 ring-emerald-200/70 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20",
-  withdrawn:
+  archived:
     "bg-zinc-100/70 text-zinc-700 ring-zinc-200/70 dark:bg-zinc-500/10 dark:text-zinc-300 dark:ring-zinc-400/20",
-  "not-interested":
-    "bg-stone-100/70 text-stone-700 ring-stone-200/70 dark:bg-stone-500/10 dark:text-stone-300 dark:ring-stone-400/20",
 };
 
 export const COMPANY_PALETTE: Record<CompanyStatus, string> = {

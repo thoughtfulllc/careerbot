@@ -4,8 +4,7 @@ export type ApplicationStatus =
   | "interview"
   | "rejected"
   | "offered"
-  | "withdrawn"
-  | "not-interested";
+  | "archived";
 
 export type ApplicationSource =
   | "greenhouse"
@@ -98,8 +97,7 @@ export const APPLICATION_STATUSES: ApplicationStatus[] = [
   "interview",
   "rejected",
   "offered",
-  "withdrawn",
-  "not-interested",
+  "archived",
 ];
 
 export const COMPANY_STATUSES: CompanyStatus[] = [

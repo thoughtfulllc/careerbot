@@ -37,7 +37,7 @@ Status changes are filesystem moves (`git mv`). The frontmatter never repeats th
 
 ### Status enum (folders)
 
-`in-review`, `applied`, `interview`, `rejected`, `offered`, `withdrawn`, `not-interested`
+`in-review`, `applied`, `interview`, `rejected`, `offered`, `archived`
 
 ### Frontmatter
 
@@ -306,7 +306,7 @@ CREATE TABLE companies (
 CREATE TABLE applications (
   company TEXT NOT NULL REFERENCES companies(slug),
   ats_id TEXT NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('in-review','applied','interview','rejected','offered','withdrawn','not-interested')),
+  status TEXT NOT NULL CHECK (status IN ('in-review','applied','interview','rejected','offered','archived')),
   title TEXT NOT NULL,
   url TEXT NOT NULL,
   source TEXT CHECK (source IN ('greenhouse','lever','ashby','workday','careers-page','other')),

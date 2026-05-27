@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight } from "lucide-react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { GlassCard } from "@/components/glass-card";
 import { StatusSelect } from "@/components/status-select";
@@ -16,23 +15,20 @@ import { useApplicationsSearch } from "./search-context";
 
 type TabSpec = { value: string; label: string };
 
-const TABS: TabSpec[] = [
-  { value: "all", label: "All" },
-  ...APPLICATION_STATUSES.map((s) => ({
-    value: s,
-    label: s
-      .split("-")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" "),
-  })),
-];
+const TABS: TabSpec[] = APPLICATION_STATUSES.map((s) => ({
+  value: s,
+  label: s
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" "),
+}));
 
 export function ApplicationsTabs({ applications }: { applications: Application[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("selected");
-  const [active, setActive] = React.useState("all");
+  const [active, setActive] = React.useState<string>(APPLICATION_STATUSES[0]);
   const search = useApplicationsSearch();
   const query = (search?.query ?? "").trim().toLowerCase();
 
@@ -53,10 +49,7 @@ export function ApplicationsTabs({ applications }: { applications: Application[]
   // open and renders an empty state.
   React.useEffect(() => {
     if (!selectedId) return; // panel closed — leave URL alone
-    const rows =
-      active === "all"
-        ? visible
-        : visible.filter((a) => a.status === active);
+    const rows = visible.filter((a) => a.status === active);
     if (rows.some((r) => r.id === selectedId)) return;
     const next = rows[0]?.id ?? "__empty__";
     if (next === selectedId) return;
@@ -64,7 +57,6 @@ export function ApplicationsTabs({ applications }: { applications: Application[]
   }, [active, selectedId, visible, router, pathname]);
 
   const counts = new Map<string, number>();
-  counts.set("all", visible.length);
   for (const status of APPLICATION_STATUSES) counts.set(status, 0);
   for (const app of visible) {
     if (app.status && counts.has(app.status)) {
@@ -73,14 +65,11 @@ export function ApplicationsTabs({ applications }: { applications: Application[]
   }
 
   return (
-    <Tabs value={active} onValueChange={(v) => setActive(v ?? "all")} className="flex h-full flex-col gap-0">
+    <Tabs value={active} onValueChange={(v) => setActive(v ?? APPLICATION_STATUSES[0])} className="flex h-full flex-col gap-0">
       <TabBar tabs={TABS} counts={counts} active={active} />
 
       {TABS.map((tab) => {
-        const rows =
-          tab.value === "all"
-            ? visible
-            : visible.filter((a) => a.status === tab.value);
+        const rows = visible.filter((a) => a.status === tab.value);
         return (
           <TabsContent
             key={tab.value}
@@ -120,11 +109,6 @@ export function ApplicationsTabs({ applications }: { applications: Application[]
                                 {formatSalaryRange(app.salaryMin, app.salaryMax)}
                               </span>
                             ) : null}
-                            {app.postedAt ? (
-                              <span title={app.postedAt}>
-                                Posted {formatRelativeDays(app.postedAt)}
-                              </span>
-                            ) : null}
                           </div>
                           {app.location ? (
                             <div className="mt-0.5 text-xs text-zinc-500">
@@ -132,8 +116,17 @@ export function ApplicationsTabs({ applications }: { applications: Application[]
                             </div>
                           ) : null}
                         </div>
+                        {app.postedAt ? (
+                          <span
+                            title={app.postedAt}
+                            className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400"
+                          >
+                            Posted {formatRelativeDays(app.postedAt)}
+                          </span>
+                        ) : (
+                          <span className="shrink-0" />
+                        )}
                         <StatusSelect kind="application" id={app.id} status={app.status} />
-                        <ChevronRight className="h-4 w-4 text-zinc-400 transition-transform duration-150 group-hover:translate-x-0.5 dark:text-zinc-500" />
                       </Link>
                     </li>
                   ))}

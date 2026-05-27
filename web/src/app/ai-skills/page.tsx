@@ -109,7 +109,7 @@ const SKILLS: Skill[] = [
     tagline:
       "Move an application between status folders. Pure file move — captures the lifecycle in folder location and git history rather than in date fields.",
     whenToUse:
-      "When the status of an application changes: applied, got an interview, got an offer, rejected, withdrawn, or skipping it.",
+      "When the status of an application changes: applied, got an interview, got an offer, rejected, or archiving it.",
     examplePhrasings: [
       "I applied to Stripe's Staff PD role",
       "Got an interview at Anthropic for Claude Code",
@@ -118,7 +118,7 @@ const SKILLS: Skill[] = [
       "Not interested in the Airbnb offline design role",
     ],
     whatItChanges:
-      "git mv between applications/<status>/ folders. Seven statuses: in-review, applied, interview, rejected, offered, withdrawn, not-interested.",
+      "git mv between applications/<status>/ folders. Six statuses: in-review, applied, interview, rejected, offered, archived.",
   },
   {
     slug: "commitandpush",

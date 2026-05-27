@@ -84,8 +84,7 @@ python3 .agents/skills/find-roles/scripts/pipeline.py discover \
   --dedup-from applications/interview \
   --dedup-from applications/rejected \
   --dedup-from applications/offered \
-  --dedup-from applications/withdrawn \
-  --dedup-from applications/not-interested \
+  --dedup-from applications/archived \
   --freshness-days 90 \
   --yc-max-candidates 40
 ```
@@ -476,7 +475,7 @@ Do NOT commit. The user runs `/commitandpush` when ready.
 - **Never submit.** This skill only creates markdown files under `applications/in-review/`. Never click apply, never fill external forms, never email recruiters.
 - **Never invent ATS IDs or URLs.** If you can't find the canonical posting, skip the role and note it in the report.
 - **Never write a question the form didn't ask.** The body should map 1:1 to the application form.
-- **Never re-draft an existing application.** Check `applications/**/<company>/*.md` across **all seven status folders** before writing — including `rejected/`, `withdrawn/`, and `not-interested/` (don't re-surface after a no).
+- **Never re-draft an existing application.** Check `applications/**/<company>/*.md` across **all six status folders** before writing — including `rejected/` and `archived/` (don't re-surface after a no).
 - **Stubs must be generic and portable.** Every stub generated in step 7 must read as a question about the user (their beliefs, stories, skills, career, identity), never about a specific company, role, or application. "What kinds of missions feel meaningful to you?" YES. "Why Anthropic?" NO. If the most natural question contains a company or role name, rewrite it as the underlying generic question before writing the file.
 - **Never generate a stub for a demographic field.** Demographic questions stay as `TODO: user fills in directly` forever.
 - **Never write a non-empty body for a stub.** Stubs are frontmatter-only. No placeholder text, no "TODO" body, no whitespace lines. The empty body is the signal that this is unfilled.

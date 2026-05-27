@@ -14,8 +14,7 @@ Status folders (the enum):
 - `interview/` — interview scheduled or in progress
 - `rejected/` — rejected at any stage
 - `offered/` — received an offer
-- `withdrawn/` — pulled out after applying
-- `not-interested/` — decided not to apply (pre-submit)
+- `archived/` — set aside (decided not to apply, or withdrew after applying)
 
 Status changes are file moves between folders, performed by `/applicationstatus` (`git mv` under the hood).
 

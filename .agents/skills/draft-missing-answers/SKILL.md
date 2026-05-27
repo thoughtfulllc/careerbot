@@ -21,7 +21,7 @@ If `context/preferences.md` is missing, stop.
 
 ## Scope
 
-**Only `applications/in-review/<co>/<id>.md`.** Never read or write any other status folder. Files under `applied/`, `interview/`, `rejected/`, `offered/`, `withdrawn/`, or `not-interested/` are off-limits.
+**Only `applications/in-review/<co>/<id>.md`.** Never read or write any other status folder. Files under `applied/`, `interview/`, `rejected/`, `offered/`, or `archived/` are off-limits.
 
 ## Workflow
 

@@ -52,8 +52,7 @@ Folders:
   applications/interview/           [exists / missing]
   applications/rejected/            [exists / missing]
   applications/offered/             [exists / missing]
-  applications/withdrawn/           [exists / missing]
-  applications/not-interested/      [exists / missing]
+  applications/archived/            [exists / missing]
 
 Files:
   context/preferences.md            [exists (N/7 sections filled) / missing]
