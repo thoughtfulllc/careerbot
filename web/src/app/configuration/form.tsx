@@ -86,7 +86,8 @@ export function ConfigurationForm({ initial }: { initial: Preferences }) {
         usedBy={
           <>
             <SkillTag>/find-roles</SkillTag> filters open postings by title.{" "}
-            <SkillTag>/find-companies</SkillTag> checks whether a company is hiring for these titles before researching it.
+            <SkillTag>/find-companies</SkillTag> checks whether a company is hiring for these titles before researching it.{" "}
+            <FilterTag kind="hard" /> Titles to avoid are dropped outright.
           </>
         }
       >
@@ -116,6 +117,15 @@ export function ConfigurationForm({ initial }: { initial: Preferences }) {
               update("role", (r) => ({ ...r, specialties }))
             }
             placeholder="Product/UX"
+          />
+        </Field>
+        <Field label="Titles to avoid">
+          <ChipInput
+            value={prefs.role.exclude_titles}
+            onChange={(exclude_titles) =>
+              update("role", (r) => ({ ...r, exclude_titles }))
+            }
+            placeholder="Engineering Manager"
           />
         </Field>
       </Section>

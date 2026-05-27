@@ -155,6 +155,7 @@ def finalize(
     new_discovery_cap: int,
     companies_root: str = "companies",
     preferences_path: str = "context/preferences.md",
+    fresh_days: int = 14,
 ) -> tuple[list[LeadRecord], list[dict], list[dict]]:
     """Apply industry filter, sort, cap with cascade. Returns (final, stubs, drops)."""
     # Soft-score industries_want (used as secondary sort key — not a filter)
@@ -188,11 +189,14 @@ def finalize(
         updates["industry_match"] = enrich_leads.score_industry_match(l, industries_want, companies_root)
         surviving.append(dataclasses.replace(l, **updates))
 
-    # Sort: priority → industry_match (higher first) → confidence → freshness (newer first)
+    # Sort: priority → industry_match (higher first) → recency_tier (fresh first)
+    #       → confidence → exact recency (newer first)
+    # recency_tier: 0=fresh (<=fresh_days), 1=normal, 2=unknown/null. fresh_days=0 disables the boost.
     surviving.sort(
         key=lambda l: (
             enrich_leads.PRIORITY_RANK.get(l.priority, 3),
             -l.industry_match,  # higher industry_match floats up
+            find_roles.recency_tier(l.posted_at, fresh_days),
             enrich_leads.CONFIDENCE_RANK.get(l.match_confidence, 3),
             -find_roles._posted_recency(l.posted_at),
         )
@@ -295,6 +299,7 @@ def cmd_finalize(args) -> int:
         new_discovery_cap=args.new_discovery_cap,
         companies_root=args.companies_root,
         preferences_path="context/preferences.md",
+        fresh_days=args.fresh_days,
     )
 
     _write_json(workdir / "final.json", [l.to_dict() for l in final])
@@ -310,11 +315,14 @@ def cmd_finalize(args) -> int:
     by_stream: dict[str, int] = {}
     by_confidence: dict[str, int] = {}
     by_source: dict[str, int] = {}
+    by_recency = {"fresh": 0, "normal": 0, "unknown": 0}
+    tier_label = {0: "fresh", 1: "normal", 2: "unknown"}
     for l in final:
         by_priority[l.priority] = by_priority.get(l.priority, 0) + 1
         by_stream[l.stream or "?"] = by_stream.get(l.stream or "?", 0) + 1
         by_confidence[l.match_confidence] = by_confidence.get(l.match_confidence, 0) + 1
         by_source[l.source] = by_source.get(l.source, 0) + 1
+        by_recency[tier_label[find_roles.recency_tier(l.posted_at, args.fresh_days)]] += 1
 
     summary = {
         "phase": "finalize",
@@ -325,6 +333,8 @@ def cmd_finalize(args) -> int:
         "by_confidence": by_confidence,
         "by_source": by_source,
         "by_stream": by_stream,
+        "by_recency": by_recency,
+        "fresh_days": args.fresh_days,
         "stubs_to_create": len(stubs),
         "final_path": str(workdir / "final.json"),
         "stubs_path": str(workdir / "stubs.json"),
@@ -358,6 +368,9 @@ def main() -> int:
     f.add_argument("--known-good-cap", type=int, default=30)
     f.add_argument("--in-review-cap", type=int, default=10)
     f.add_argument("--new-discovery-cap", type=int, default=40)
+    f.add_argument("--fresh-days", type=int, default=14,
+                   help="Roles with posted_at within this many days surface above older ones "
+                        "in each priority/industry cell. 0 disables the boost. Default: 14.")
     f.add_argument("--write-stubs", action="store_true")
 
     args = ap.parse_args()

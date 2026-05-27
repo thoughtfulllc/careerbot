@@ -9,7 +9,7 @@ import { GlassCard } from "@/components/glass-card";
 import { StatusSelect } from "@/components/status-select";
 import { TabBar } from "@/components/tab-bar";
 import { APPLICATION_STATUSES, type Application } from "@/lib/types";
-import { formatSalaryRange } from "@/lib/format";
+import { formatRelativeDays, formatSalaryRange } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { rowHref } from "@/lib/row-href";
 import { useApplicationsSearch } from "./search-context";
@@ -118,6 +118,11 @@ export function ApplicationsTabs({ applications }: { applications: Application[]
                             {app.salaryMin != null || app.salaryMax != null ? (
                               <span>
                                 {formatSalaryRange(app.salaryMin, app.salaryMax)}
+                              </span>
+                            ) : null}
+                            {app.postedAt ? (
+                              <span title={app.postedAt}>
+                                Posted {formatRelativeDays(app.postedAt)}
                               </span>
                             ) : null}
                           </div>

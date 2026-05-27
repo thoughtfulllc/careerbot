@@ -175,6 +175,31 @@ def _posted_recency(posted_at: Optional[str]) -> int:
         return 0
 
 
+def recency_tier(posted_at: Optional[str], fresh_days: int, today=None) -> int:
+    """Bucket a posting age into a sortable tier.
+
+    0 = fresh (age <= fresh_days, or future-dated due to clock skew)
+    1 = normal (fresh_days < age, including very old; the 90d hard filter runs earlier)
+    2 = unknown (no posted_at, or unparseable)
+
+    Pass fresh_days=0 to disable the boost (collapses tier 0 into tier 1 for all dated roles).
+    """
+    if not posted_at:
+        return 2
+    try:
+        import datetime as dt
+        posted = dt.date.fromisoformat(posted_at)
+    except (ValueError, TypeError):
+        return 2
+    today = today or __import__("datetime").date.today()
+    age = (today - posted).days
+    if fresh_days <= 0:
+        return 1
+    if age <= fresh_days:  # includes future-dated (negative age)
+        return 0
+    return 1
+
+
 def load_dedup_set(dedup_paths: list[str]) -> tuple[set[str], set[tuple[str, str]]]:
     """Parse existing application markdown files to collect (url, ats_id) pairs."""
     known_urls: set[str] = set()

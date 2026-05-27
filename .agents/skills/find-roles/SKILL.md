@@ -137,13 +137,14 @@ python3 .agents/skills/find-roles/scripts/pipeline.py finalize \
   --known-good-cap 30 \
   --in-review-cap 10 \
   --new-discovery-cap 40 \
+  --fresh-days 14 \
   --write-stubs
 ```
 
 What this does:
 
 - **Industry filter** — for each new-discovery lead, look up `<slug>` in `industry.json`. If verdict is `blocked`, drop. If `skipped`, surface with `⚠` flag. If `clean`, surface normally.
-- **Sort** by `(priority_rank, confidence_rank, -recency_days)`. `known-good > in-review > new-discovery`; `high > medium > low` confidence; newer first.
+- **Sort** by `(priority_rank, -industry_match, recency_tier, confidence_rank, -recency_days)`. Reading left to right: first by priority bucket (`known-good > in-review > new-discovery`); then industry-fit signal (higher first — companies whose industry tags overlap `preferences.md.industries_want` float above weaker matches); then `recency_tier` (0 = fresh ≤ `fresh-days`, 1 = normal up to the 90-day hard filter, 2 = unknown / null `posted_at`); then confidence (`high > medium > low`); then exact recency (newer first). The `recency_tier` insertion is what surfaces fresh roles within each industry-fit cell — it does NOT drop older roles (the 90-day hard filter handles that earlier), it only re-orders within their bucket. Pass `--fresh-days 0` to disable the boost (collapses tier 0 into tier 1).
 - **Per-priority cap with downward cascade.** Up to 30 known-good + 10 in-review + 40 new-discovery = 80 total. Unused slots in known-good cascade to in-review, then to new-discovery. Surplus new-discovery is dropped (never backfills upper buckets).
 - **Auto-stub** new-discovery companies that survived the cap → minimal `companies/in-review/<slug>.md` files (frontmatter only, `discovered_via: find-roles`). Idempotent. Connects find-roles back into the `/find-companies` flow.
 
@@ -156,6 +157,10 @@ Outputs `.cache/find-roles/final.json` (the final ≤80 leads) and `.cache/find-
 The cross-cutting search pass from v1 is now Stream A. No separate step.
 
 ### 4. For each lead in `.cache/find-roles/final.json`, fetch the full posting
+
+**Single source of truth for lead metadata: `.cache/find-roles/final.json`.** Every per-lead field — `title`, `ats_id`, `posting_url`, `source`, `posted_at`, `location`, `comp_min`, `comp_max` — is already populated there by `pipeline.py finalize`. The frontmatter you write in step 8 MUST be derived from `final.json`, never re-typed from memory, never copied from an upstream prompt, and never inferred from the JD page (the JD often omits dates the ATS adapter captured).
+
+**If you fan out to subagents for parallelism (recommended for >5 leads), each subagent prompt MUST contain only lead identifiers — `(company_slug, ats_id)` pairs — and explicitly instruct the subagent to read `.cache/find-roles/final.json` itself to look up every other field by matching on those identifiers. Never inline `title`, `posting_url`, `source`, `posted_at`, `location`, or `salary_*` into a subagent prompt — hand-retyped metadata across many leads is the single most common source of incorrect frontmatter, and the subagent will trust the prompt as authoritative.** This rule exists because of a past incident where 8 of 26 drafted applications had wrong `posted_at` values from orchestrator copy-paste errors.
 
 For each lead in `.cache/find-roles/final.json` (from step 2d), open the role's individual page at `posting_url`. Extract:
 
@@ -358,6 +363,7 @@ company: <company-slug>
 ats_id: "<ATS ID>"
 url: "<canonical posting URL>"
 source: <greenhouse|lever|ashby|workday|careers-page|other>
+posted_at: <ISO YYYY-MM-DD from lead.posted_at, or null if the adapter didn't capture one>
 date_found: <today YYYY-MM-DD>
 salary_min: <integer or null>
 salary_max: <integer or null>
@@ -415,9 +421,22 @@ Drafting guidance:
 - Avoid generic phrasing ("I'm passionate about…", "I'd love to contribute…"). Specifics are always stronger than adjectives.
 - If a question genuinely can't be answered from `context/`, leave a clearly marked `TODO: <question>` paragraph rather than inventing.
 
-### 9. Report back
+### 9. Validate drafts against `final.json`, then report back
 
-After processing all leads, give the user:
+**Before reporting, run the frontmatter validator** to catch any regressions where the drafted application files lost or contradicted data the pipeline already captured (this guards against the orchestrator-retyping bug class):
+
+```bash
+python3 .agents/skills/find-roles/scripts/validate_drafts.py
+```
+
+The validator parses each newly-written `applications/in-review/**/*.md`, matches `(company, ats_id)` against `.cache/find-roles/final.json`, and reports two categories per field:
+
+- **Regressions** — `final.json` had a value and the frontmatter dropped or contradicts it. Exit code 1. These are bugs to fix before reporting. The most common cause is the orchestrator hand-typing lead metadata into a subagent prompt incorrectly; the fix is to re-derive the field from `final.json` and edit the frontmatter.
+- **Enrichments** — `final.json` was null and the frontmatter has a value (subagent extracted it from the JD body). Informational only, not a failure. Surface the count in the user-facing report so the user knows the drafts are *more* accurate than the pipeline output in those spots.
+
+If regressions are found, fix them (edit the affected frontmatter lines from `final.json`) and re-run the validator until clean before reporting back.
+
+After validation, give the user:
 
 - **Discovery summary** from `.cache/find-roles/final.json` and the two `pipeline.py` JSON outputs (discover + finalize):
   - Total leads in each phase: merged → after filter → after dedup → after status route → after industry filter → final (capped).
@@ -425,6 +444,7 @@ After processing all leads, give the user:
   - **By stream:** A (title-wide search) / B (interested sweep) / C (YC firehose).
   - **By confidence:** high / medium / low.
   - **By source:** greenhouse / lever / ashby / workday / workable / custom.
+  - **By freshness:** fresh / normal / unknown counts (from the `by_recency` field in finalize's JSON output, computed against the `--fresh-days` threshold — default 14). Lets the user see the boost working each run: if `fresh` is 0, the threshold is set too tight or the discovery streams aren't returning anything recent.
   - **Industry filter drops:** count + first 3 examples (slug, reason, matched keywords) so the user can audit.
   - **Skipped (industry not verified):** count + slug list. These surface with a `⚠` flag — user can manually confirm.
 - **Stubs auto-created:** count + list of `companies/in-review/<slug>.md` files written this run. (User can promote any to `interested/` via `/applicationstatus`-style move, or kick to `not-interested/`.)

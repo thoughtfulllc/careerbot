@@ -91,6 +91,7 @@ Also extract:
 - Canonical job title (verbatim from the posting).
 - Salary range if disclosed (parse into `salary_min` / `salary_max` integers, USD, no `$`).
 - Location string as stated in the posting.
+- Posting date if the ATS exposes one (Greenhouse `updated_at`, Lever `createdAt`, Ashby `published`, Workable `published`, Workday `postedOn`) → `posted_at` as ISO `YYYY-MM-DD`. Use `null` if the source doesn't expose one (custom HTML page).
 
 **Fetch fallback.** If the fetch returns empty, a login wall, JS-only chrome, or otherwise unusable content (common for Workday and some Greenhouse embeds), do NOT bail. Tell the user:
 
@@ -151,6 +152,7 @@ company: <company-slug>
 ats_id: "<ATS ID>"
 url: "<canonical posting URL>"
 source: <greenhouse|lever|ashby|workday|careers-page|other>
+posted_at: <ISO YYYY-MM-DD from ATS, or null if not exposed>
 date_found: <today YYYY-MM-DD>
 salary_min: <integer or null>
 salary_max: <integer or null>

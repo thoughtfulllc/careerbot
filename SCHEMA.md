@@ -48,6 +48,7 @@ Status changes are filesystem moves (`git mv`). The frontmatter never repeats th
 | `ats_id` | string | yes | Quoted in YAML; may be alphanumeric |
 | `url` | string | yes | Full canonical posting URL |
 | `source` | enum | no | `greenhouse` \| `lever` \| `ashby` \| `workday` \| `careers-page` \| `other` |
+| `posted_at` | date | no | ISO `YYYY-MM-DD`. Posting date as reported by the ATS (Greenhouse `updated_at`, Lever `createdAt`, Ashby `published`, Workable `published`, Workday `postedOn`). Null when the source doesn't expose one (custom HTML scrape). |
 | `date_found` | date | no | **Deprecated** — still parsed for back-compat but no UI reads or writes it. Safe to omit on new applications. |
 | `salary_min` | integer | no | USD; bare number, no `$` |
 | `salary_max` | integer | no | USD |
@@ -70,6 +71,7 @@ company: stripe
 ats_id: "1234567890"
 url: "https://stripe.com/jobs/1234567890"
 source: greenhouse
+posted_at: 2026-05-08
 date_found: 2026-05-10
 salary_min: 180000
 salary_max: 250000
@@ -308,6 +310,7 @@ CREATE TABLE applications (
   title TEXT NOT NULL,
   url TEXT NOT NULL,
   source TEXT CHECK (source IN ('greenhouse','lever','ashby','workday','careers-page','other')),
+  posted_at DATE,
   date_found DATE,
   salary_min INTEGER,
   salary_max INTEGER,

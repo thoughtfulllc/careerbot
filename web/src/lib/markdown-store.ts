@@ -237,6 +237,7 @@ function applicationFromFile(f: ParsedFile<Application>): Application & { _body:
     atsId: str(d.ats_id),
     url: str(d.url),
     source: enumOrNull<ApplicationSource>(d.source, APPLICATION_SOURCE_SET),
+    postedAt: date(d.posted_at),
     dateFound: date(d.date_found),
     salaryMin: num(d.salary_min),
     salaryMax: num(d.salary_max),

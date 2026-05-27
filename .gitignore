@@ -14,3 +14,6 @@ after-answer-bank-filter.png
 
 # Per-run scratch state for /find-roles pipeline (stream JSONs, routed/final caches)
 .cache/
+
+# Python bytecode
+__pycache__/

@@ -36,6 +36,7 @@ export interface Application {
   atsId: string | null;
   url: string | null;
   source: ApplicationSource | null;
+  postedAt: string | null;
   dateFound: string | null;
   salaryMin: number | null;
   salaryMax: number | null;
