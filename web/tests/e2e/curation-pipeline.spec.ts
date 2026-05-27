@@ -66,8 +66,9 @@ test.describe("Curation + applications pipeline", () => {
 
     const row = page.getByRole("link", { name: /Senior Product Designer/ });
     await expect(row).toBeVisible();
-    await row.locator("button", { hasText: /In Review/ }).click();
-    await page.getByRole("option", { name: /^Applied$/ }).click();
+    // Hover the row to reveal the next-step action buttons, then click "Applied".
+    await row.hover();
+    await row.getByRole("button", { name: /^Applied$/ }).click();
 
     await expect(page.getByText(/Status changed to Applied/)).toBeVisible();
 

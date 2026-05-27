@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { GlassCard } from "@/components/glass-card";
-import { StatusSelect } from "@/components/status-select";
+import { ApplicationRowStatus } from "@/components/application-row-status";
+import { ApplicationRowContextMenu } from "@/components/application-row-context-menu";
 import { TabBar } from "@/components/tab-bar";
 import { APPLICATION_STATUSES, type Application } from "@/lib/types";
 import { formatRelativeDays, formatSalaryRange } from "@/lib/format";
@@ -85,6 +86,7 @@ export function ApplicationsTabs({ applications }: { applications: Application[]
                 <ul className="list-divide">
                   {rows.map((app) => (
                     <li key={app.id}>
+                      <ApplicationRowContextMenu id={app.id} status={app.status}>
                       <Link
                         href={rowHref("/applications", app.id, searchParams)}
                         className={cn(
@@ -116,18 +118,21 @@ export function ApplicationsTabs({ applications }: { applications: Application[]
                             </div>
                           ) : null}
                         </div>
-                        {app.postedAt ? (
-                          <span
-                            title={app.postedAt}
-                            className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400"
-                          >
-                            Posted {formatRelativeDays(app.postedAt)}
-                          </span>
-                        ) : (
-                          <span className="shrink-0" />
-                        )}
-                        <StatusSelect kind="application" id={app.id} status={app.status} />
+                        <div className="flex shrink-0 flex-col items-end justify-between self-stretch">
+                          {app.postedAt ? (
+                            <span
+                              title={app.postedAt}
+                              className="text-xs text-zinc-500 dark:text-zinc-400"
+                            >
+                              {formatRelativeDays(app.postedAt)}
+                            </span>
+                          ) : (
+                            <span />
+                          )}
+                          <ApplicationRowStatus id={app.id} status={app.status} />
+                        </div>
                       </Link>
+                      </ApplicationRowContextMenu>
                     </li>
                   ))}
                 </ul>
