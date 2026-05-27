@@ -124,7 +124,7 @@ export function ApplicationRowStatus({ id, status }: ApplicationRowStatusProps) 
                     variant="ghost"
                     aria-label={label}
                     disabled={pending !== null}
-                    className="size-8 cursor-pointer rounded-sm hover:bg-zinc-900/10 dark:hover:bg-white/10"
+                    className="size-8 cursor-pointer rounded-sm text-zinc-500 hover:bg-zinc-900/10 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-50"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

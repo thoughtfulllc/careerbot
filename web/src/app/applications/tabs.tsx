@@ -90,46 +90,42 @@ export function ApplicationsTabs({ applications }: { applications: Application[]
                       <Link
                         href={rowHref("/applications", app.id, searchParams)}
                         className={cn(
-                          "group list-row",
+                          "group list-row min-h-20 flex-col items-stretch gap-2",
                           app.id === selectedId && "row-selected",
                         )}
                       >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate font-medium tracking-tight text-zinc-900 dark:text-zinc-50">
-                              {app.title}
-                            </span>
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
-                            {app.companyName ? (
-                              <span className="text-zinc-600 dark:text-zinc-400">
-                                {app.companyName}
-                              </span>
-                            ) : null}
-                            {app.salaryMin != null || app.salaryMax != null ? (
-                              <span>
-                                {formatSalaryRange(app.salaryMin, app.salaryMax)}
-                              </span>
-                            ) : null}
-                          </div>
-                          {app.location ? (
-                            <div className="mt-0.5 text-xs text-zinc-500">
-                              {app.location}
-                            </div>
-                          ) : null}
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end justify-between self-stretch">
+                        <div className="flex w-full items-center justify-between gap-2">
+                          <span className="min-w-0 truncate font-medium tracking-tight text-zinc-900 dark:text-zinc-50">
+                            {app.title}
+                          </span>
                           {app.postedAt ? (
                             <span
                               title={app.postedAt}
-                              className="text-xs text-zinc-500 dark:text-zinc-400"
+                              className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400"
                             >
                               {formatRelativeDays(app.postedAt)}
                             </span>
-                          ) : (
-                            <span />
-                          )}
-                          <ApplicationRowStatus id={app.id} status={app.status} />
+                          ) : null}
+                        </div>
+                        <div className="flex w-full flex-1 items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                              {app.companyName ? <span>{app.companyName}</span> : null}
+                              {app.salaryMin != null || app.salaryMax != null ? (
+                                <span>
+                                  {formatSalaryRange(app.salaryMin, app.salaryMax)}
+                                </span>
+                              ) : null}
+                            </div>
+                            {app.location ? (
+                              <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                {app.location}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="shrink-0 self-end">
+                            <ApplicationRowStatus id={app.id} status={app.status} />
+                          </div>
                         </div>
                       </Link>
                       </ApplicationRowContextMenu>
