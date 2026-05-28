@@ -192,7 +192,7 @@ export function SideNav() {
         <div
           className={cn(
             "glass-strong relative flex h-full w-full flex-col gap-6 overflow-hidden rounded-2xl",
-            collapsed ? "p-2" : "p-4",
+            "p-2",
           )}
         >
           {/* subtle gradient overlay on the sidenav */}
